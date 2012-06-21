@@ -1,0 +1,16 @@
+{
+  "name": "peers",
+  "version": "0.0.0",
+  "description": "peer2peer nodejs applications",
+  "homepage": "http://github.com/dominictarr/peers",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dominictarr/peers.git"
+  },
+  "dependencies": {
+    "crdt": "~1.6.1",
+    "optimist": "~0.3.4"
+  },
+  "devDependencies": {},
+  "author": "Dominic Tarr <dominic.tarr@gmail.com> (dominictarr.com)"
+}
