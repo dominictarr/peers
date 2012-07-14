@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "crdt": "~1.6.1",
-    "optimist": "~0.3.4"
+    "optimist": "~0.3.4",
+    "event-stream": "2.1"
   },
   "devDependencies": {},
   "author": "Dominic Tarr <dominic.tarr@gmail.com> (dominictarr.com)"

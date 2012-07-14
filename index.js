@@ -30,20 +30,15 @@ function sync(doc, file, synced) {
     doc.once('sync', synced)
 
   function write(hist) {
-    console.log('HIST', hist, hist != null)
     doc.sync = true
     doc.emit('sync')
     doc.createReadStream({end: false, history: hist != null })
 //      .pipe(es.log('TO FILE>>'))
       .pipe(es.stringify())
       .pipe(fs.createWriteStream(file, {flags: 'a'}))
-      .on('end', function () {
-        console.log('ON END')
-      })
   }
 
   fs.stat(file, function (err) { 
-    console.log(err)
     if(err) return write(true)
     else
       fs.createReadStream(file)
@@ -77,7 +72,6 @@ function sync(doc, file, synced) {
 module.exports = 
 function (opts, ready) {
 
-  console.log('HELLO1')
   var doc = new crdt.Doc(), server
   if(opts.id)
     doc.id = opts.id
@@ -85,8 +79,10 @@ function (opts, ready) {
     //create a record for this node if there is not one already.
     var peer = doc.get(doc.id)
     var peers = doc.createSet('type', 'peer')
+
     if(!peer.get('type'))
       peer.set({type: 'peer'}) 
+
     function connect(con, doc) {
       con
         .pipe(es.split())
@@ -100,7 +96,6 @@ function (opts, ready) {
 
     if(!opts.client)
     server = net.createServer(function (con) {
-      console.log('remote connection')
       connect(con, doc)
       //copy data for 3 seconds.
       var timeout = setTimeout(function () {
@@ -114,16 +109,51 @@ function (opts, ready) {
 
     }).listen(a.port, a.host, function () {
       console.log('peer:', opts.id, 'listening on', a.host,':', a.port)
-      peer.set({online: Date.now(), host: a.host, port: a.port})
+      peer.set({online: Date.now(), host: a.host, port: a.port, pid: process.pid})
     })
+
+    //don't take into account the oldness of nodes when your first connecting.
+
+    var first = true
 
     ready(null, {peers: peers, peer: peer, server: server})
     //also, start connecting to other nodes...
     //every second, connect to a random server & exchange data.
     setInterval(function () {
-      var l = peers.asArray().length
-      var n = peers.asArray()[~~(Math.random()*l)]
-      //console.log('attempt connect to', n ? n.toJSON() : n)
+     //console.log('attempt connect to', n ? n.toJSON() : n)
+
+      //set a heat beat property, we can use this to detect when a node is down.
+      //if a node's heartbeat is too old (do clever stats, or use simple rule of thumb)
+      //then that node may be out of action. so... don't replicate to it until it comes back up.
+      //and certainly, for services running in the cluster, don't balance (or whatever) to 
+      //services running on nodes that look like they are down.
+      
+      var now = Date.now()
+      peer.set({heartbeat: now})
+
+      //select a suilable peer to connect to.
+      //dont cannect to peers that look like they are offline
+      //the heartbeat updates every second, so if we havn't heard from it in more than two
+      //rounds, some thing must be wrong. (this will change depending on latency in network, and
+      //stuff like that. don't make any decisions about that stuff until you've got instrumentation)
+      //if you have only just come online, then your info is old, so try and replicate to any one.
+      //probably make this more fuzzy. just be less eager to replicate to too old heartbeats.
+
+      var upPeers = (first ? peers.asArray() : 
+        peers.asArray().filter(function (peer) {
+          console.log(now - peer.get('heartbeat'))
+          if ((now - 2000) < peer.get('heartbeat'))
+            return true
+        })
+      )
+      console.log(upPeers.map(function (e) {
+        return [e.id, e.get('heartbeat'), e.get('port')]
+      }), now - 2000)
+      var l = upPeers.length
+      var n = upPeers[~~(Math.random()*l)]
+
+      //when a peer comes back up, it will reconnect 
+ 
       var con
       if(n && n !== peer) {
         con = net.connect(n.get('port'), n.get('host'))
@@ -146,6 +176,7 @@ function (opts, ready) {
           console.log('replicating',doc.id, '->', n.get('id')) 
         })
         con.on('end', function () {
+          first = false
           console.log('disconnect',doc.id, '->', n.get('id')) 
         })
       }
