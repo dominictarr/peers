@@ -4,7 +4,19 @@ a simple peer-to-peer framework.
 
 replicate dynamic data through a trusted network with a gossip protocol and [crdt](http://github.com/dominictarr/crdt)
 
-##usage
+## Usage
+
+``` js
+
+peers()
+  .use(function name (stream, other) {
+    //plugin style, can stream to other side.
+  })
+  .connect(initial_port, initial_host)
+  .connect(initial_port2)   //.. as many as you like...
+  .listen(port, host)       //port to listen on.
+
+```
 
 peers needs to know a it's id, a file where it can persist it's data, 
 an address to listen on, and an initial address to connect to.

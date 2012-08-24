@@ -10,7 +10,9 @@
   "dependencies": {
     "crdt": "~1.6.1",
     "optimist": "~0.3.4",
-    "event-stream": "2.1"
+    "event-stream": "2.1",
+    "through": "~0.1.4",
+    "mux-demux": "~3.3.0"
   },
   "devDependencies": {},
   "author": "Dominic Tarr <dominic.tarr@gmail.com> (dominictarr.com)"
