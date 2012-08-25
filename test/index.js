@@ -4,15 +4,6 @@ var macgyver = require('macgyver')
 var EventEmitter = require('events').EventEmitter
 var invert = require('invert-stream')
 
-/*
-peers()
-  .use(function name (stream, other) {
-    //plugin style, can stream to other side.
-  })
-  .connect(initial_port, initial_host)
-  .connect(initial_port2)   //.. as many as you like...
-  .listen(port, host)       //port to listen on.
-*/
 
 return
 

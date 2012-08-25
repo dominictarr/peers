@@ -1,27 +1,84 @@
 
 var Peers = require('..')
+var consistent = require('./helpers')
+
+var reps = 0
+/*
+1, 2, 4, 8, 16, 32, 64
+
+*/
+
+var ROUND = 1000
 
 function replicate(stream, isClient) {
-  stream.pipe(this.model.createStream()).pipe(stream)
+  reps ++
+  stream.pipe(this.model.createStream({wrapper: 'raw'})).pipe(stream)
   setTimeout(function () {
     stream.end()
-  }, 1000)
-  console.log(this.model.toJSON())
-  console.log(stream.meta, isClient)
+  }, ROUND)
 }
 
-var a = Peers(null, 'a')
-  .use(replicate)
-  .listen(6464)
+function randomPort() {
+  return ~~((Math.random() * 40000) + 1024)
+}
 
-var b = Peers(null, 'b')
-  .use(replicate)
-  .connect(6464)
-  .listen(4242)
+function createPeers (ids) {
+  var leaderPort, leader
+  var peers = ids.map(function (id) {
+    var peer = Peers(null, id)
+    if(!leaderPort) {
+      leaderPort = randomPort()
+      leader = peer
+      peer
+        .listen(leaderPort)
+        .connect(leaderPort)
+    }
+    else {
+      peer
+        .listen(randomPort())
+        .connect(leaderPort)
+    }
+    peer.use(replicate)
+    return peer
+  })
 
-var c = Peers(null, 'c')
-  .use(replicate)
-  .connect(6464)
-  .listen(8686)
+  var models = peers.map(function (peer) {
+    return peer.model
+  })
 
+  var steps = 0
+
+  var checker = setInterval(function () {
+
+    var c = consistent(models)
+    console.log('inconsistent:', c, steps ++, reps)
+    if(c)
+      return
+
+    randChange()
+    steps = 0
+    return
+
+    console.log('CONSISTENT')
+    peers.forEach(function (peer) {
+      peer.close()
+    })
+    clearInterval(checker)
+    console.log(leader.model.toJSON())
+
+  }, ROUND)
+
+  function randChange() {
+    var r = peers[~~(peers.length * Math.random())]
+    r.model.get(r.id).set('random', Math.random())
+  }
+
+//  setTimeout(randChange, 300)
+//  setTimeout(randChange, 500)
+//  setTimeout(randChange, 700)
+
+
+}
+
+createPeers('abcdefhijklmnopqrstuvwxyzAOEUIDHTNS_QJKXBMWVPYFGCRL$&[{}(=*)+]!#~%7531902468`'.split(''))
 

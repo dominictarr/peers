@@ -44,15 +44,13 @@ function Peers (opts, id) {
   this.reconnect = true
   merge(defaults, this.opts)
 
-  console.log(id)
-
+  this.id = id
   this.model = Model(id || uuid.v4())
 
   this.initial = []
 }
 
 Peers.prototype._connect = function () {
-  console.log('attempt connection')
 
   var target = this.model.choose(this.initial)
   var stream = this.opts.connect(target.port, target.host)
@@ -60,7 +58,6 @@ Peers.prototype._connect = function () {
   var self = this
 
   function connect () {
-    console.log('CONNECT!!!')
     stream.pipe(mx).pipe(stream)
     for(var k in self.plugins)
       self._apply(mx.createStream({type: k, from: self.model.id, to: target.id}), true)
@@ -77,7 +74,7 @@ Peers.prototype._connect = function () {
 
     setTimeout(function () {
       self._connect()
-    }, 100)
+    }, 100 + Math.random() * 50)
     stream.removeListener('end',   reconnect)
     stream.removeListener('error', reconnect)
     stream.removeListener('connect', connect)
@@ -110,7 +107,6 @@ Peers.prototype.use = function (handler) {
 }
 
 Peers.prototype._apply = function (stream, isClient) {
-  console.log('APPLY')
   var plug = stream.meta.type
   if(!this.plugins[plug])
     stream.error('no plugin for'+plug)
@@ -133,8 +129,8 @@ Peers.prototype.listen = function (port, host) {
 }
 
 Peers.prototype.close = function () {
-  console.log(this.server)
-  if(this.server)
-    this.server.close()
+  //if _handle is truthy the server is in use.
+  if(this.server && this.server._handle)
+    this.server.close() 
   this.reconnect = false
 }

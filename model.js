@@ -11,7 +11,7 @@ var Doc = require('crdt').Doc
 module.exports = function (id) {
 
   var model = new Doc(id)
-
+//  model.sync = true
   model.create = function (port, address) {
 
     var me = model.add({
@@ -31,7 +31,7 @@ module.exports = function (id) {
       return model.rows[k].toJSON()
     }))
 
-    var r= all[~~ (Math.random()*all.length)]
+    var r= all[~~(Math.random()*all.length)]
     
     var me = model.get(id).toJSON()
 
@@ -40,7 +40,6 @@ module.exports = function (id) {
 
     if(!r)
       throw new Error('fail to select target')
-    console.log('chosen', r)
 
     return r
 
