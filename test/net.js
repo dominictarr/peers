@@ -18,10 +18,12 @@ function createPeer(port, initial) {
         }
       })
 
-      if(client)
-        stream.write('hello'), stream.end()
+      if(isClient)
+        stream.write('*** HI THERE ***'), stream.end()
       else
-        stream.on('data', console.log)
+        stream.on('data', function (data) {
+          console.log('RECV', data)
+        })
     })
 }
 

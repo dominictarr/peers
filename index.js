@@ -3,6 +3,8 @@ module.exports = Peers
 
 var MuxDemux = require('mux-demux')
 var net = require('net')
+var uuid = require('node-uuid')
+var Model = require('./model')
 
 function wrap (name) {
   return function () {
@@ -13,14 +15,18 @@ function wrap (name) {
 }
 
 var defaults = {
+  name: 'defaults',
   choose: function (args) {
     return args[0]
   },
-  connect: function (port) {
-    return net.connect(port)
+  connect: function (port, host) {
+    return net.connect(port, host)
   },
   listen: function (port) {
     return net.createServer().listen(port)
+  },
+  peers: function () {
+    return this.initial
   }
 }
 
@@ -31,12 +37,16 @@ function merge (from, to) {
   return to
 }
 
-function Peers (opts) {
-  if(!(this instanceof Peers)) return new Peers(opts)
+function Peers (opts, id) {
+  if(!(this instanceof Peers)) return new Peers(opts, id)
   this.opts = opts || {}
   this.plugins = {}
   this.reconnect = true
   merge(defaults, this.opts)
+
+  console.log(id)
+
+  this.model = Model(id || uuid.v4())
 
   this.initial = []
 }
@@ -44,7 +54,8 @@ function Peers (opts) {
 Peers.prototype._connect = function () {
   console.log('attempt connection')
 
-  var stream = this.opts.connect(this.opts.choose(this.initial))
+  var target = this.model.choose(this.initial)
+  var stream = this.opts.connect(target.port, target.host)
   var mx = MuxDemux().close()
   var self = this
 
@@ -52,7 +63,7 @@ Peers.prototype._connect = function () {
     console.log('CONNECT!!!')
     stream.pipe(mx).pipe(stream)
     for(var k in self.plugins)
-      self._apply(mx.createStream(k), true)
+      self._apply(mx.createStream({type: k, from: self.model.id, to: target.id}), true)
   }
 
   var n = 0
@@ -64,10 +75,9 @@ Peers.prototype._connect = function () {
     // handling rounds of connections
     if(n++) return
 
-      setTimeout(function () {
-        self._connect()
-      }, 100)
-
+    setTimeout(function () {
+      self._connect()
+    }, 100)
     stream.removeListener('end',   reconnect)
     stream.removeListener('error', reconnect)
     stream.removeListener('connect', connect)
@@ -87,11 +97,8 @@ Peers.prototype._firstConnection = function () {
 
 }
 
-Peers.prototype.connect = function (port) {
-  if(arguments.length === 1)
-    this.initial.push(port)
-  else 
-    this.initial.push([].slice.call(arguments))
+Peers.prototype.connect = function (port, host) {
+  this.initial.push({port: port, host: host, id: 'init'})
 
   this._firstConnection()
   return this
@@ -102,21 +109,22 @@ Peers.prototype.use = function (handler) {
   return this
 }
 
-Peers.prototype._apply = function (stream, client) {
+Peers.prototype._apply = function (stream, isClient) {
   console.log('APPLY')
-  var plug = stream.meta
+  var plug = stream.meta.type
   if(!this.plugins[plug])
     stream.error('no plugin for'+plug)
   else
-    this.plugins[plug].call(this, stream, client)
+    this.plugins[plug].call(this, stream, isClient)
 }
 
-Peers.prototype.listen = function (port) {
+Peers.prototype.listen = function (port, host) {
 
+  //add self to peers.
+  this.model.create(port, host || 'localhost')
   this.server = this.opts.listen(port)
   var self = this
   this.server.on('connection', function (stream) {
-    console.log('CONNECTION!!!')
     stream.pipe(MuxDemux(
       self._apply.bind(self)
     )).pipe(stream)

@@ -14,6 +14,7 @@ peers()
   .listen(port, host)       //port to listen on.
 */
 
+return
 
 var peers = require('..')
 var through = require('through')
@@ -49,7 +50,7 @@ exports['inject choose function'] = function (t) {
 
   function rand () {
     var _r = Math.round(Math.random() * 40000) + 1024
-    r.push(_r)
+    r.push({port: _r, host: 'localhost'})
     return _r
   }
 
@@ -57,7 +58,9 @@ exports['inject choose function'] = function (t) {
     //connect takes the chosen port
     //and creates a connection.
     connect: mac(function (port) {
-      a.equal(port, r[0])
+      console.log('ports', port, r[0].port)
+
+      a.equal(port, r[0].port)
       return through()
     }).once(),
     choose: mac(function (array) {
@@ -65,11 +68,11 @@ exports['inject choose function'] = function (t) {
       return array[0]
     }).once()
   })
-  .connect(rand()) //generate some ports!
-  .connect(rand())
-  .connect(rand())
-  .connect(rand())
-  .connect(rand())
+  .connect(rand(), 'localhost') //generate some ports!
+  .connect(rand(), 'localhost')
+  .connect(rand(), 'localhost')
+  .connect(rand(), 'localhost')
+  .connect(rand(), 'localhost')
 }
 
 exports['fake server'] = function (t) {
@@ -128,14 +131,13 @@ exports['fake server'] = function (t) {
       return stream.other
     }).once(),
     choose: mac(function (array) {
-      return array[0]
+      return  array[0]
     }).once(),
   })
   .use(handler)
   .connect(0)
 
 }
-
 
 for (var k in exports)
   console.log('#', k), exports[k]()
