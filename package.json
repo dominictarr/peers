@@ -1,6 +1,6 @@
 {
   "name": "peers",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "peer2peer nodejs applications",
   "homepage": "http://github.com/dominictarr/peers",
   "repository": {
