@@ -111,7 +111,7 @@ exports['fake server'] = function (t) {
   peers({
     //connect takes the chosen port
     //and creates a connection.
-    connect: mac(function (port) {
+    connect:function (port) {
       a.equal(port, 0)
       process.nextTick(function () {
         //make the server pretend it's connected.
@@ -120,7 +120,7 @@ exports['fake server'] = function (t) {
         stream.other.emit('connect')
       })
       return stream.other
-    }).once(),
+    },
     choose: mac(function (array) {
       return  array[0]
     }).once(),
