@@ -8,16 +8,18 @@
 
 var Doc = require('crdt').Doc
 
-module.exports = function (id) {
+module.exports = function (security) {
 
-  var model = new Doc(id)
-//  model.sync = true
+  var model = new Doc(security)
+  var id = model.id
   model.create = function (port, address) {
 
     var me = model.add({
       id: id, 
       port: port, 
-      address: address
+      address: address,
+      publicKey: security.publicKey,
+      type: 'peer'
     })
 
     return me
@@ -31,12 +33,12 @@ module.exports = function (id) {
       return model.rows[k].toJSON()
     }))
 
-    var r= all[~~(Math.random()*all.length)]
-    
+    var r = all[~~(Math.random()*all.length)]
+
     var me = model.get(id).toJSON()
 
     if(r.port == me.port && r.host == me.host && all.length > 1 && depth < 10)
-      return model.choose(initial, (depth || 1) + 1)
+      return r = model.choose(initial, (depth || 1) + 1)
 
     if(!r)
       throw new Error('fail to select target')

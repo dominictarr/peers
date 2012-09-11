@@ -44,8 +44,8 @@ function Peers (opts, id) {
   this.reconnect = true
   merge(defaults, this.opts)
 
-  this.id = id
   this.model = Model(id || uuid.v4())
+  this.id = this.model.id
 
   this.initial = []
 }
@@ -60,7 +60,12 @@ Peers.prototype._connect = function () {
   function connect () {
     stream.pipe(mx).pipe(stream)
     for(var k in self.plugins)
-      self._apply(mx.createStream({type: k, from: self.model.id, to: target.id}), true)
+      self._apply(mx.createStream({
+        type: k, 
+        from: self.model.id, 
+        to: target.id
+      }, {allowHalfOpen: false})
+    , true)
   }
 
   var n = 0
